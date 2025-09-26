@@ -2,13 +2,20 @@ import SwiftUI
 
 struct RecordingView: View {
     @EnvironmentObject var notesManager: NotesManager
-    @StateObject private var audioCapService = AudioCapService()
+    @EnvironmentObject var audioCapService: AudioCapService
+    private let openAIService = OpenAIService()
     
     @State private var noteTitle = ""
     @State private var selectedFolder = "General"
     @State private var recordingStartTime: Date?
     @State private var showingAlert = false
     @State private var alertMessage = ""
+    @State private var showSettingsPopover = false
+    @AppStorage("openAIBaseURL") private var openAIBaseURL: String = "https://api.openai.com/v1"
+    @AppStorage("openAITranscriptionModel") private var openAITranscriptionModel: String = "whisper-1"
+    @AppStorage("openAITextModel") private var openAITextModel: String = "gpt-5"
+    @AppStorage("openAIAPIKey") private var openAIAPIKey: String = ""
+    @State private var isTranscribing = false
     
     var body: some View {
         VStack(spacing: 30) {
@@ -148,26 +155,46 @@ struct RecordingView: View {
     
     @ViewBuilder
     private var recordingControlsView: some View {
-        Button {
-            if audioCapService.isRecording {
-                stopRecording()
-            } else {
-                startRecording()
+        VStack(spacing: 12) {
+            Button {
+                if audioCapService.isRecording {
+                    stopRecording()
+                } else {
+                    startRecording()
+                }
+            } label: {
+                HStack {
+                    Image(systemName: audioCapService.isRecording ? "stop.fill" : "record.circle.fill")
+                        .font(.title2)
+                    Text(audioCapService.isRecording ? (isTranscribing ? "Stopping..." : "Stop Recording") : "Start Recording")
+                        .font(.headline)
+                }
+                .frame(maxWidth: 220)
+                .padding(.vertical, 12)
             }
-        } label: {
-            HStack {
-                Image(systemName: audioCapService.isRecording ? "stop.fill" : "record.circle.fill")
-                    .font(.title2)
-                Text(audioCapService.isRecording ? "Stop Recording" : "Start Recording")
-                    .font(.headline)
+            .buttonStyle(.borderedProminent)
+            .controlSize(.large)
+            .disabled(false)
+            .tint(audioCapService.isRecording ? .red : .blue)
+
+            HStack(spacing: 8) {
+                if isTranscribing {
+                    ProgressView().controlSize(.small)
+                    Text("Transcribing...").font(.caption).foregroundColor(.secondary)
+                }
+                Spacer()
+                Button { showSettingsPopover.toggle() } label: {
+                    Label("Transcription Settings", systemImage: "gearshape")
+                }
+                .buttonStyle(.bordered)
+                .controlSize(.small)
+                .popover(isPresented: $showSettingsPopover, arrowEdge: .top) {
+                    OpenAISettingsPanelView { showSettingsPopover = false }
+                        .frame(width: 520)
+                }
             }
-            .frame(maxWidth: 200)
-            .padding(.vertical, 12)
+            .frame(maxWidth: 400)
         }
-        .buttonStyle(.borderedProminent)
-        .controlSize(.large)
-        .disabled(false) // Always allow recording - microphone should work independently
-        .tint(audioCapService.isRecording ? .red : .blue)
     }
     
     private func startRecording() {
@@ -212,7 +239,7 @@ struct RecordingView: View {
         let systemURL = notesManager.getFileURL(for: systemFileName, in: selectedFolder)
         let micURL = notesManager.getFileURL(for: micFileName, in: selectedFolder)
         
-        let note = Note(
+        var note = Note(
             title: noteTitle.trimmingCharacters(in: .whitespacesAndNewlines),
             systemAudioURL: systemURL,
             microphoneURL: micURL,
@@ -226,6 +253,102 @@ struct RecordingView: View {
         
         noteTitle = ""
         recordingStartTime = nil
+
+        // Kick off transcription for available audio sources (with timestamps)
+        let config = OpenAIConfig(
+            baseURL: openAIBaseURL,
+            apiKey: openAIAPIKey,
+            transcriptionModel: openAITranscriptionModel,
+            textModel: openAITextModel
+        )
+        isTranscribing = true
+        Task { @MainActor in
+            do {
+                let fm = FileManager.default
+                func fileExistsNonEmpty(_ url: URL) -> Bool {
+                    guard fm.fileExists(atPath: url.path) else { return false }
+                    if let attrs = try? fm.attributesOfItem(atPath: url.path), let size = attrs[.size] as? NSNumber {
+                        return size.intValue > 0
+                    }
+                    return true
+                }
+
+                let hasMic = fileExistsNonEmpty(micURL)
+                let hasSys = fileExistsNonEmpty(systemURL)
+
+                var mic: TranscriptionResult?
+                var sys: TranscriptionResult?
+
+                if hasMic && hasSys {
+                    async let micResult = openAIService.transcribeAudioDetailed(at: micURL, config: config, prompt: "Transcribe the speech clearly with timestamps per segment.")
+                    async let sysResult = openAIService.transcribeAudioDetailed(at: systemURL, config: config, prompt: "Transcribe the audio clearly with timestamps per segment.")
+                    do {
+                        (mic, sys) = try await (micResult, sysResult)
+                    } catch {
+                        // Handle partial failures by trying serially and storing error
+                        // Mic
+                        do { mic = try await openAIService.transcribeAudioDetailed(at: micURL, config: config, prompt: "Transcribe the speech clearly with timestamps per segment.") } catch {
+                            notesManager.updateNoteTranscriptionError(noteID: note.id, message: "Transcription (Mic) failed: \(error.localizedDescription)")
+                        }
+                        // System
+                        do { sys = try await openAIService.transcribeAudioDetailed(at: systemURL, config: config, prompt: "Transcribe the audio clearly with timestamps per segment.") } catch {
+                            notesManager.updateNoteTranscriptionError(noteID: note.id, message: "Transcription (System) failed: \(error.localizedDescription)")
+                        }
+                    }
+                } else if hasMic {
+                    do {
+                        mic = try await openAIService.transcribeAudioDetailed(at: micURL, config: config, prompt: "Transcribe the speech clearly with timestamps per segment.")
+                    } catch {
+                        notesManager.updateNoteTranscriptionError(noteID: note.id, message: "Transcription (Mic) failed: \(error.localizedDescription)")
+                    }
+                } else if hasSys {
+                    do {
+                        sys = try await openAIService.transcribeAudioDetailed(at: systemURL, config: config, prompt: "Transcribe the audio clearly with timestamps per segment.")
+                    } catch {
+                        notesManager.updateNoteTranscriptionError(noteID: note.id, message: "Transcription (System) failed: \(error.localizedDescription)")
+                    }
+                } else {
+                    notesManager.updateNoteTranscript(noteID: note.id, transcript: "No audio files found to transcribe.")
+                    isTranscribing = false
+                    return
+                }
+
+                // Update timestamped transcripts on the note if present
+                if let mic { notesManager.updateNoteMicTimestamped(noteID: note.id, transcriptTS: mic.timestampedText) }
+                if let sys { notesManager.updateNoteSystemTimestamped(noteID: note.id, transcriptTS: sys.timestampedText) }
+
+                var combinedForModel = ""
+                if let mic { combinedForModel += "Microphone Transcript (Timestamped):\n\(mic.timestampedText)\n\n" }
+                if let sys { combinedForModel += "System Audio Transcript (Timestamped):\n\(sys.timestampedText)\n\n" }
+                combinedForModel = combinedForModel.trimmingCharacters(in: .whitespacesAndNewlines)
+
+                // If there is no transcript content (both failed), bail
+                guard !combinedForModel.isEmpty else {
+                    notesManager.updateNoteTranscript(noteID: note.id, transcript: "Transcription failed or produced no content.")
+                    isTranscribing = false
+                    return
+                }
+
+                do {
+                    let extracted = try await openAIService.extractActionItems(from: combinedForModel, config: config)
+                    let combinedForNote = """
+                    Summary:\n\(extracted.summary)\n\nAction Items:\n\(extracted.actionItems.enumerated().map { "\($0 + 1). \($1)" }.joined(separator: "\n"))\n\n\(combinedForModel)
+                    """
+                    notesManager.updateNoteTranscript(noteID: note.id, transcript: combinedForNote)
+                } catch {
+                    notesManager.updateNoteSummaryError(noteID: note.id, message: "Summary extraction failed: \(error.localizedDescription)")
+                    // Still store raw transcripts for reference
+                    notesManager.updateNoteTranscript(noteID: note.id, transcript: combinedForModel)
+                }
+            } catch {
+                // Preserve baseline transcript state and surface an unobtrusive message
+                let msg = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
+                notesManager.updateNoteTranscriptionError(noteID: note.id, message: msg)
+                alertMessage = msg
+                showingAlert = true
+            }
+            isTranscribing = false
+        }
     }
     
     private func showAlert(_ message: String) {
@@ -260,4 +383,5 @@ struct RecordingTimerView: View {
 #Preview {
     RecordingView()
         .environmentObject(NotesManager())
+        .environmentObject(AudioCapService())
 }

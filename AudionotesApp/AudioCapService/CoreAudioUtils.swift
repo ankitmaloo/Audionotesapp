@@ -24,6 +24,11 @@ extension AudioObjectID {
         try AudioDeviceID.system.readDefaultSystemOutputDevice()
     }
 
+    /// Reads the value for `kAudioHardwarePropertyDefaultInputDevice`.
+    static func readDefaultInputDevice() throws -> AudioDeviceID {
+        try AudioDeviceID.system.readDefaultInputDevice()
+    }
+
     static func readProcessList() throws -> [AudioObjectID] {
         try AudioObjectID.system.readProcessList()
     }
@@ -87,6 +92,14 @@ extension AudioObjectID {
         (try? readBool(kAudioProcessPropertyIsRunning)) ?? false
     }
 
+    func readProcessIsRunningOutput() -> Bool {
+        (try? readBool(kAudioProcessPropertyIsRunningOutput)) ?? false
+    }
+
+    func readProcessIsRunningInput() -> Bool {
+        (try? readBool(kAudioProcessPropertyIsRunningInput)) ?? false
+    }
+
     /*
      public var kAudioProcessPropertyPID: AudioObjectPropertySelector { get }
 
@@ -108,12 +121,23 @@ extension AudioObjectID {
         return try read(kAudioHardwarePropertyDefaultSystemOutputDevice, defaultValue: AudioDeviceID.unknown)
     }
 
+    /// Reads the value for `kAudioHardwarePropertyDefaultInputDevice`, should only be called on the system object.
+    func readDefaultInputDevice() throws -> AudioDeviceID {
+        try requireSystemObject()
+
+        return try read(kAudioHardwarePropertyDefaultInputDevice, defaultValue: AudioDeviceID.unknown)
+    }
+
     /// Reads the value for `kAudioDevicePropertyDeviceUID` for the device represented by this audio object ID.
     func readDeviceUID() throws -> String { try readString(kAudioDevicePropertyDeviceUID) }
 
     /// Reads the value for `kAudioTapPropertyFormat` for the device represented by this audio object ID.
     func readAudioTapStreamBasicDescription() throws -> AudioStreamBasicDescription {
         try read(kAudioTapPropertyFormat, defaultValue: AudioStreamBasicDescription())
+    }
+
+    func readDeviceIsRunningSomewhere() -> Bool {
+        (try? readBool(kAudioDevicePropertyDeviceIsRunningSomewhere)) ?? false
     }
 
     private func requireSystemObject() throws {

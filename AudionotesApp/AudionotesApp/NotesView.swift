@@ -199,10 +199,22 @@ struct NoteRowView: View {
                     .foregroundColor(.secondary)
             }
             
-            Text(note.transcript.isEmpty ? "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua." : note.transcript)
-                .font(.subheadline)
-                .foregroundColor(.secondary)
-                .lineLimit(3)
+            VStack(alignment: .leading, spacing: 6) {
+                if let err = note.transcriptionError, !err.isEmpty {
+                    Label("Transcription Error: \(err)", systemImage: "xmark.octagon.fill")
+                        .foregroundColor(.red)
+                        .font(.footnote)
+                }
+                if let err = note.summaryError, !err.isEmpty {
+                    Label("Summary Error: \(err)", systemImage: "exclamationmark.triangle.fill")
+                        .foregroundColor(.orange)
+                        .font(.footnote)
+                }
+                Text(note.transcript)
+                    .font(.subheadline)
+                    .foregroundColor(.secondary)
+                    .lineLimit(nil)
+            }
         }
         .padding(.vertical, 4)
     }

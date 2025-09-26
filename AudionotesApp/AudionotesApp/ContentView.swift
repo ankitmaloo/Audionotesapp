@@ -2,8 +2,8 @@ import SwiftUI
 import AppKit
 
 struct ContentView: View {
-    @StateObject private var permission = AudioRecordingPermission()
-    @StateObject private var notesManager = NotesManager()
+    @EnvironmentObject private var permission: AudioRecordingPermission
+    @EnvironmentObject private var appState: AppState
     
     var body: some View {
         VStack(spacing: 15) {
@@ -17,7 +17,6 @@ struct ContentView: View {
             }
         }
         .padding()
-        .environmentObject(notesManager)
     }
     
     @ViewBuilder
@@ -72,21 +71,34 @@ struct ContentView: View {
     
     @ViewBuilder
     private var recordingView: some View {
-        TabView {
+        TabView(selection: $appState.activeTab) {
             NotesView()
                 .tabItem {
                     Label("Notes", systemImage: "note.text")
                 }
+                .tag(AppState.Tab.notes)
             
             RecordingView()
                 .tabItem {
                     Label("Record", systemImage: "mic.fill")
                 }
+                .tag(AppState.Tab.recording)
         }
         .frame(minWidth: 800, minHeight: 600)
     }
 }
 
 #Preview {
-    ContentView()
+    let permission = AudioRecordingPermission()
+    let appState = AppState()
+    let notesManager = NotesManager()
+    let audioCapService = AudioCapService()
+    let detection = CallDetectionService(audioCapService: audioCapService, monitoringEnabled: false)
+
+    return ContentView()
+        .environmentObject(permission)
+        .environmentObject(appState)
+        .environmentObject(notesManager)
+        .environmentObject(audioCapService)
+        .environmentObject(detection)
 }

@@ -42,6 +42,14 @@ final class NotesManager: ObservableObject {
         saveNotes()
         logger.info("Deleted note: \(note.title)")
     }
+
+    func updateNoteTranscript(noteID: UUID, transcript: String) {
+        if let index = notes.firstIndex(where: { $0.id == noteID }) {
+            notes[index].transcript = transcript
+            saveNotes()
+            logger.info("Updated transcript for note: \(self.notes[index].title)")
+        }
+    }
     
     func createFolder(named name: String) {
         guard !folders.contains(where: { $0.name == name }) else { return }
@@ -55,7 +63,7 @@ final class NotesManager: ObservableObject {
         
         logger.info("Created folder: \(name)")
     }
-    
+
     func notesForFolder(_ folderName: String) -> [Note] {
         return notes.filter { $0.folderName == folderName }
                    .sorted { $0.createdAt > $1.createdAt }
@@ -100,6 +108,38 @@ final class NotesManager: ObservableObject {
         } catch {
             logger.info("No existing notes found or failed to load: \(error)")
             notes = []
+        }
+    }
+
+    func updateNoteMicTimestamped(noteID: UUID, transcriptTS: String) {
+        if let index = notes.firstIndex(where: { $0.id == noteID }) {
+            notes[index].microphoneTranscriptTimestamped = transcriptTS
+            saveNotes()
+            logger.info("Updated mic timestamped transcript for note: \(self.notes[index].title)")
+        }
+    }
+
+    func updateNoteSystemTimestamped(noteID: UUID, transcriptTS: String) {
+        if let index = notes.firstIndex(where: { $0.id == noteID }) {
+            notes[index].systemTranscriptTimestamped = transcriptTS
+            saveNotes()
+            logger.info("Updated system timestamped transcript for note: \(self.notes[index].title)")
+        }
+    }
+
+    func updateNoteTranscriptionError(noteID: UUID, message: String) {
+        if let index = notes.firstIndex(where: { $0.id == noteID }) {
+            notes[index].transcriptionError = message
+            saveNotes()
+            logger.error("Transcription error for note: \(self.notes[index].title) — \(message)")
+        }
+    }
+
+    func updateNoteSummaryError(noteID: UUID, message: String) {
+        if let index = notes.firstIndex(where: { $0.id == noteID }) {
+            notes[index].summaryError = message
+            saveNotes()
+            logger.error("Summary error for note: \(self.notes[index].title) — \(message)")
         }
     }
 }

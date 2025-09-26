@@ -140,11 +140,13 @@ private extension AudioProcess {
     init(app: NSRunningApplication, objectID: AudioObjectID) {
         let name = app.localizedName ?? app.bundleURL?.deletingPathExtension().lastPathComponent ?? app.bundleIdentifier?.components(separatedBy: ".").last ?? "Unknown \(app.processIdentifier)"
 
+        let audioActive = objectID.readProcessIsRunningOutput() || objectID.readProcessIsRunningInput()
+
         self.init(
             id: app.processIdentifier,
             kind: .app,
             name: name,
-            audioActive: objectID.readProcessIsRunning(),
+            audioActive: audioActive,
             bundleID: app.bundleIdentifier,
             bundleURL: app.bundleURL,
             objectID: objectID
@@ -174,11 +176,13 @@ private extension AudioProcess {
             ("Unknown (\(pid))", nil)
         }
 
+        let audioActive = objectID.readProcessIsRunningOutput() || objectID.readProcessIsRunningInput()
+
         self.init(
             id: pid,
             kind: bundleURL?.isApp == true ? .app : .process,
             name: name,
-            audioActive: objectID.readProcessIsRunning(),
+            audioActive: audioActive,
             bundleID: bundleID.flatMap { $0.isEmpty ? nil : $0 },
             bundleURL: bundleURL,
             objectID: objectID

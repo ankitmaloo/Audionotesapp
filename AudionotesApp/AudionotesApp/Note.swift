@@ -8,7 +8,13 @@ struct Note: Identifiable, Codable {
     let folderName: String
     let createdAt: Date
     let duration: TimeInterval
-    let transcript: String
+    var transcript: String
+    // Optional timestamped transcripts for each source
+    var microphoneTranscriptTimestamped: String? = nil
+    var systemTranscriptTimestamped: String? = nil
+    // Error reporting fields
+    var transcriptionError: String? = nil
+    var summaryError: String? = nil
     
     var formattedDate: String {
         let formatter = DateFormatter()
