@@ -23,13 +23,32 @@ struct OpenAISettingsPanelView: View {
     private let defaultTextModel = "gpt-5"
 
     var body: some View {
-        VStack(spacing: 16) {
-            header
-            form
-            footer
+        ZStack {
+            // Atmospheric background
+            Color.dsGradientAtmosphere
+                .ignoresSafeArea()
+                .grainTexture(opacity: 0.05)
+
+            ScrollView {
+                VStack(spacing: DSSpacing.lg) {
+                    header
+                        .staggeredFadeIn(index: 0, delay: DSAnimation.staggerMedium)
+
+                    decorativeDivider
+                        .staggeredFadeIn(index: 1, delay: DSAnimation.staggerMedium)
+
+                    form
+
+                    decorativeDivider
+                        .staggeredFadeIn(index: 5, delay: DSAnimation.staggerMedium)
+
+                    footer
+                        .staggeredFadeIn(index: 6, delay: DSAnimation.staggerMedium)
+                }
+                .padding(DSSpacing.xl)
+            }
         }
-        .padding(16)
-        .frame(minWidth: 460)
+        .frame(minWidth: 540, minHeight: 600)
         .onAppear {
             baseURL = openAIBaseURL
             transcriptionModel = openAITranscriptionModel
@@ -38,106 +57,343 @@ struct OpenAISettingsPanelView: View {
         }
     }
 
+    // MARK: - Header
+
     @ViewBuilder
     private var header: some View {
-        HStack(spacing: 12) {
-            Image(systemName: "gearshape.fill")
-                .font(.system(size: 28))
-                .foregroundColor(.blue)
-                .frame(width: 36, height: 36)
-            VStack(alignment: .leading, spacing: 4) {
-                Text("OpenAI Settings")
-                    .font(.title2).fontWeight(.bold)
-                Text("Configure base URL, models, and your API key for transcription and summaries.")
-                    .font(.subheadline).foregroundColor(.secondary)
+        VStack(spacing: DSSpacing.sm) {
+            HStack(spacing: DSSpacing.md) {
+                // Icon with warm glow
+                ZStack {
+                    Circle()
+                        .fill(Color.dsAccentPrimary.opacity(0.15))
+                        .frame(width: 56, height: 56)
+
+                    Image(systemName: "slider.horizontal.3")
+                        .font(.system(size: 28, weight: .semibold))
+                        .foregroundColor(.dsAccentPrimary)
+                }
+                .warmGlow(intensity: 0.4)
+
+                VStack(alignment: .leading, spacing: DSSpacing.xxs) {
+                    Text("OpenAI Settings")
+                        .font(DSFont.title2(.bold))
+                        .foregroundColor(.dsTextPrimary)
+
+                    Text("Premium Control Surface")
+                        .font(DSFont.caption(.medium))
+                        .foregroundColor(.dsAccentPrimary)
+                        .tracking(2)
+                        .textCase(.uppercase)
+                }
+
+                Spacer()
             }
-            Spacer()
+
+            // Subtitle
+            Text("Configure base URL, models, and your API key for transcription and summaries.")
+                .font(DSFont.body())
+                .foregroundColor(.dsTextTertiary)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.top, DSSpacing.xxs)
         }
     }
+
+    // MARK: - Decorative Divider
+
+    @ViewBuilder
+    private var decorativeDivider: some View {
+        HStack(spacing: DSSpacing.sm) {
+            Circle()
+                .fill(Color.dsAccentPrimary)
+                .frame(width: 4, height: 4)
+
+            Rectangle()
+                .fill(
+                    LinearGradient(
+                        colors: [
+                            Color.dsAccentPrimary.opacity(0.5),
+                            Color.dsDivider,
+                            Color.dsAccentPrimary.opacity(0.5)
+                        ],
+                        startPoint: .leading,
+                        endPoint: .trailing
+                    )
+                )
+                .frame(height: 1)
+
+            Circle()
+                .fill(Color.dsAccentPrimary)
+                .frame(width: 4, height: 4)
+        }
+    }
+
+    // MARK: - Form
 
     @ViewBuilder
     private var form: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            GroupBox(label: Label("API", systemImage: "network")) {
-                VStack(alignment: .leading, spacing: 8) {
-                    Text("Base URL").font(.headline)
-                    TextField("https://api.openai.com/v1", text: $baseURL)
-                        .textFieldStyle(.roundedBorder)
-                        .font(.system(.body, design: .monospaced))
+        VStack(alignment: .leading, spacing: DSSpacing.md) {
+            // API Section
+            FormSection(
+                title: "API Configuration",
+                icon: "network",
+                index: 2
+            ) {
+                VStack(alignment: .leading, spacing: DSSpacing.sm) {
+                    Text("Base URL")
+                        .font(DSFont.subheadline(.semibold))
+                        .foregroundColor(.dsTextSecondary)
+
+                    GlassTextField(
+                        placeholder: "https://api.openai.com/v1",
+                        text: $baseURL,
+                        isMonospaced: true
+                    )
                 }
-                .padding(8)
             }
 
-            GroupBox(label: Label("Models", systemImage: "cpu")) {
-                VStack(alignment: .leading, spacing: 8) {
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text("Transcription Model").font(.headline)
-                        TextField("whisper-1", text: $transcriptionModel)
-                            .textFieldStyle(.roundedBorder)
+            // Models Section
+            FormSection(
+                title: "Model Selection",
+                icon: "cpu",
+                index: 3
+            ) {
+                VStack(alignment: .leading, spacing: DSSpacing.md) {
+                    VStack(alignment: .leading, spacing: DSSpacing.sm) {
+                        HStack {
+                            Text("Transcription Model")
+                                .font(DSFont.subheadline(.semibold))
+                                .foregroundColor(.dsTextSecondary)
+
+                            Spacer()
+
+                            Image(systemName: "waveform")
+                                .font(.system(size: 12))
+                                .foregroundColor(.dsAccentPrimary.opacity(0.6))
+                        }
+
+                        GlassTextField(
+                            placeholder: "whisper-1",
+                            text: $transcriptionModel
+                        )
                     }
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text("Text (Summaries & Actions)").font(.headline)
-                        TextField("gpt-5", text: $textModel)
-                            .textFieldStyle(.roundedBorder)
+
+                    VStack(alignment: .leading, spacing: DSSpacing.sm) {
+                        HStack {
+                            Text("Text Model")
+                                .font(DSFont.subheadline(.semibold))
+                                .foregroundColor(.dsTextSecondary)
+
+                            Spacer()
+
+                            Image(systemName: "text.bubble")
+                                .font(.system(size: 12))
+                                .foregroundColor(.dsAccentPrimary.opacity(0.6))
+                        }
+
+                        Text("Summaries & Actions")
+                            .font(DSFont.caption())
+                            .foregroundColor(.dsTextTertiary)
+
+                        GlassTextField(
+                            placeholder: "gpt-5",
+                            text: $textModel
+                        )
                     }
                 }
-                .padding(8)
             }
 
-            GroupBox(label: Label("Credentials", systemImage: "key.fill")) {
-                VStack(alignment: .leading, spacing: 8) {
-                    Text("API Key").font(.headline)
-                    SecureField("OpenAI API key", text: $apiKey)
-                        .textFieldStyle(.roundedBorder)
-                    HStack(spacing: 12) {
+            // Credentials Section
+            FormSection(
+                title: "Authentication",
+                icon: "key.fill",
+                index: 4
+            ) {
+                VStack(alignment: .leading, spacing: DSSpacing.md) {
+                    VStack(alignment: .leading, spacing: DSSpacing.sm) {
+                        HStack {
+                            Text("API Key")
+                                .font(DSFont.subheadline(.semibold))
+                                .foregroundColor(.dsTextSecondary)
+
+                            Spacer()
+
+                            Image(systemName: "lock.shield")
+                                .font(.system(size: 12))
+                                .foregroundColor(.dsAccentPrimary.opacity(0.6))
+                        }
+
+                        GlassSecureField(
+                            placeholder: "sk-...",
+                            text: $apiKey
+                        )
+                    }
+
+                    // Test Connection Row
+                    HStack(spacing: DSSpacing.sm) {
                         Button {
                             testConnection()
                         } label: {
-                            if isTesting {
-                                ProgressView().scaleEffect(0.8)
+                            HStack(spacing: DSSpacing.xs) {
+                                if isTesting {
+                                    ProgressView()
+                                        .scaleEffect(0.7)
+                                        .frame(width: 14, height: 14)
+                                } else {
+                                    Image(systemName: "bolt.fill")
+                                        .font(.system(size: 12))
+                                }
+
+                                Text(isTesting ? "Testing Connection…" : "Test Connection")
+                                    .font(DSFont.callout(.medium))
                             }
-                            Text(isTesting ? "Testing…" : "Test Connection")
+                            .foregroundColor(.dsTextPrimary)
+                            .padding(.horizontal, DSSpacing.md)
+                            .padding(.vertical, DSSpacing.sm)
+                            .background(
+                                RoundedRectangle(cornerRadius: DSSpacing.radiusMedium)
+                                    .fill(Color.dsAccentPrimary.opacity(0.15))
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: DSSpacing.radiusMedium)
+                                            .stroke(Color.dsAccentPrimary.opacity(0.3), lineWidth: 1)
+                                    )
+                            )
                         }
                         .disabled(apiKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || isTesting)
-                        .buttonStyle(.bordered)
+                        .opacity((apiKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || isTesting) ? 0.5 : 1.0)
+                        .hoverEffect(scale: 1.03, brightness: 0.05)
+                        .buttonStyle(.plain)
 
                         if !testMessage.isEmpty {
-                            Label(testMessage, systemImage: testIsError ? "xmark.octagon.fill" : "checkmark.seal.fill")
-                                .foregroundColor(testIsError ? .red : .green)
+                            HStack(spacing: DSSpacing.xs) {
+                                Image(systemName: testIsError ? "xmark.circle.fill" : "checkmark.circle.fill")
+                                    .font(.system(size: 14))
+                                    .foregroundColor(testIsError ? .dsError : .dsSuccess)
+
+                                Text(testMessage)
+                                    .font(DSFont.caption(.medium))
+                                    .foregroundColor(testIsError ? .dsError : .dsSuccess)
+                                    .lineLimit(1)
+                            }
+                            .padding(.horizontal, DSSpacing.sm)
+                            .padding(.vertical, DSSpacing.xs)
+                            .background(
+                                RoundedRectangle(cornerRadius: DSSpacing.radiusSmall)
+                                    .fill((testIsError ? Color.dsError : Color.dsSuccess).opacity(0.1))
+                            )
+                            .transition(.scale.combined(with: .opacity))
                         }
                     }
-                    HStack {
-                        Spacer()
-                        Link(destination: URL(string: "https://platform.openai.com/api-keys")!) {
-                            Label("Get an API key", systemImage: "link")
+                    .animation(DSAnimation.springSmooth, value: testMessage)
+
+                    // Get API Key Link
+                    Link(destination: URL(string: "https://platform.openai.com/api-keys")!) {
+                        HStack(spacing: DSSpacing.xs) {
+                            Image(systemName: "arrow.up.right.square")
+                                .font(.system(size: 12))
+
+                            Text("Get an API key from OpenAI")
+                                .font(DSFont.footnote(.medium))
                         }
-                        .buttonStyle(.bordered)
+                        .foregroundColor(.dsAccentPrimary)
                     }
+                    .hoverEffect(scale: 1.02, brightness: 0.1)
+                    .frame(maxWidth: .infinity, alignment: .trailing)
                 }
-                .padding(8)
             }
         }
     }
+
+    // MARK: - Footer
 
     @ViewBuilder
     private var footer: some View {
-        HStack {
-            Button(role: .none) {
-                baseURL = defaultBaseURL
-                transcriptionModel = defaultTranscriptionModel
-                textModel = defaultTextModel
+        HStack(spacing: DSSpacing.md) {
+            // Reset Button
+            Button {
+                withAnimation(DSAnimation.springSmooth) {
+                    baseURL = defaultBaseURL
+                    transcriptionModel = defaultTranscriptionModel
+                    textModel = defaultTextModel
+                }
             } label: {
-                Label("Reset Defaults", systemImage: "arrow.counterclockwise")
+                HStack(spacing: DSSpacing.xs) {
+                    Image(systemName: "arrow.counterclockwise")
+                        .font(.system(size: 12))
+
+                    Text("Reset Defaults")
+                        .font(DSFont.callout(.medium))
+                }
+                .foregroundColor(.dsTextSecondary)
+                .padding(.horizontal, DSSpacing.md)
+                .padding(.vertical, DSSpacing.sm)
+                .background(
+                    RoundedRectangle(cornerRadius: DSSpacing.radiusMedium)
+                        .fill(Color.dsBackgroundTertiary)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: DSSpacing.radiusMedium)
+                                .stroke(Color.dsDivider, lineWidth: 1)
+                        )
+                )
             }
-            .buttonStyle(.bordered)
+            .hoverEffect(scale: 1.03, brightness: 0.05)
+            .buttonStyle(.plain)
 
             Spacer()
 
-            Button("Cancel") { onDone?() }
-            Button("Save") { saveAndClose() }
-                .buttonStyle(.borderedProminent)
+            // Cancel Button
+            Button {
+                onDone?()
+            } label: {
+                Text("Cancel")
+                    .font(DSFont.callout(.medium))
+                    .foregroundColor(.dsTextSecondary)
+                    .padding(.horizontal, DSSpacing.lg)
+                    .padding(.vertical, DSSpacing.sm)
+                    .background(
+                        RoundedRectangle(cornerRadius: DSSpacing.radiusMedium)
+                            .fill(Color.dsBackgroundTertiary)
+                            .overlay(
+                                RoundedRectangle(cornerRadius: DSSpacing.radiusMedium)
+                                    .stroke(Color.dsDivider, lineWidth: 1)
+                            )
+                    )
+            }
+            .hoverEffect(scale: 1.03, brightness: 0.05)
+            .buttonStyle(.plain)
+
+            // Save Button
+            Button {
+                saveAndClose()
+            } label: {
+                HStack(spacing: DSSpacing.xs) {
+                    Image(systemName: "checkmark")
+                        .font(.system(size: 12, weight: .semibold))
+
+                    Text("Save Settings")
+                        .font(DSFont.callout(.semibold))
+                }
+                .foregroundColor(.dsBackgroundPrimary)
+                .padding(.horizontal, DSSpacing.lg)
+                .padding(.vertical, DSSpacing.sm)
+                .background(
+                    RoundedRectangle(cornerRadius: DSSpacing.radiusMedium)
+                        .fill(
+                            LinearGradient(
+                                colors: [Color.dsAccentPrimary, Color.dsAccentDeep],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
+                        )
+                        .shadow(color: Color.dsAccentPrimary.opacity(0.3), radius: 8, x: 0, y: 4)
+                )
+            }
+            .hoverEffect(scale: 1.05, brightness: 0.1)
+            .buttonStyle(.plain)
         }
     }
+
+    // MARK: - Actions
 
     private func saveAndClose() {
         openAIBaseURL = baseURL.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -167,6 +423,162 @@ struct OpenAISettingsPanelView: View {
             } catch {
                 testMessage = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
                 testIsError = true
+            }
+        }
+    }
+}
+
+// MARK: - Form Section Component
+
+private struct FormSection<Content: View>: View {
+    let title: String
+    let icon: String
+    let index: Int
+    @ViewBuilder let content: Content
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: DSSpacing.md) {
+            // Section Header
+            HStack(spacing: DSSpacing.sm) {
+                Image(systemName: icon)
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundColor(.dsAccentPrimary)
+                    .frame(width: 20)
+
+                Text(title)
+                    .font(DSFont.headline(.semibold))
+                    .foregroundColor(.dsTextPrimary)
+
+                Spacer()
+
+                // Decorative accent
+                Circle()
+                    .fill(Color.dsAccentPrimary.opacity(0.3))
+                    .frame(width: 6, height: 6)
+            }
+
+            // Content
+            content
+                .padding(DSSpacing.md)
+                .background(
+                    ZStack {
+                        // Glass background
+                        RoundedRectangle(cornerRadius: DSSpacing.radiusMedium)
+                            .fill(Color.dsBackgroundSecondary.opacity(0.5))
+
+                        // Grain texture
+                        RoundedRectangle(cornerRadius: DSSpacing.radiusMedium)
+                            .fill(
+                                LinearGradient(
+                                    colors: [
+                                        Color.white.opacity(0.02),
+                                        Color.clear,
+                                        Color.white.opacity(0.01)
+                                    ],
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                )
+                            )
+                    }
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: DSSpacing.radiusMedium)
+                        .stroke(
+                            LinearGradient(
+                                colors: [
+                                    Color.dsAccentPrimary.opacity(0.2),
+                                    Color.dsDivider,
+                                    Color.dsAccentPrimary.opacity(0.1)
+                                ],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            ),
+                            lineWidth: 1
+                        )
+                )
+                .shadow(color: Color.black.opacity(0.1), radius: 8, x: 0, y: 4)
+        }
+        .staggeredFadeIn(index: index, delay: DSAnimation.staggerMedium)
+    }
+}
+
+// MARK: - Glass Text Field
+
+private struct GlassTextField: View {
+    let placeholder: String
+    @Binding var text: String
+    var isMonospaced: Bool = false
+    @State private var isFocused = false
+
+    var body: some View {
+        TextField(placeholder, text: $text, onEditingChanged: { editing in
+            withAnimation(DSAnimation.springSnappy) {
+                isFocused = editing
+            }
+        })
+        .font(isMonospaced ? DSFont.mono(DSFont.sizeBody) : DSFont.body())
+        .foregroundColor(.dsTextPrimary)
+        .textFieldStyle(.plain)
+        .padding(.horizontal, DSSpacing.sm)
+        .padding(.vertical, DSSpacing.sm)
+        .background(
+            RoundedRectangle(cornerRadius: DSSpacing.radiusSmall)
+                .fill(Color.dsBackgroundPrimary.opacity(0.6))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: DSSpacing.radiusSmall)
+                .stroke(
+                    isFocused ? Color.dsAccentPrimary.opacity(0.5) : Color.dsDivider,
+                    lineWidth: isFocused ? 2 : 1
+                )
+        )
+        .shadow(
+            color: isFocused ? Color.dsAccentPrimary.opacity(0.2) : Color.clear,
+            radius: 8,
+            x: 0,
+            y: 2
+        )
+    }
+}
+
+// MARK: - Glass Secure Field
+
+private struct GlassSecureField: View {
+    let placeholder: String
+    @Binding var text: String
+    @State private var isFocused = false
+
+    var body: some View {
+        SecureField(placeholder, text: $text, onCommit: {
+            withAnimation(DSAnimation.springSnappy) {
+                isFocused = false
+            }
+        })
+        .font(DSFont.body())
+        .foregroundColor(.dsTextPrimary)
+        .textFieldStyle(.plain)
+        .padding(.horizontal, DSSpacing.sm)
+        .padding(.vertical, DSSpacing.sm)
+        .background(
+            RoundedRectangle(cornerRadius: DSSpacing.radiusSmall)
+                .fill(Color.dsBackgroundPrimary.opacity(0.6))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: DSSpacing.radiusSmall)
+                .stroke(
+                    isFocused ? Color.dsAccentPrimary.opacity(0.5) : Color.dsDivider,
+                    lineWidth: isFocused ? 2 : 1
+                )
+        )
+        .shadow(
+            color: isFocused ? Color.dsAccentPrimary.opacity(0.2) : Color.clear,
+            radius: 8,
+            x: 0,
+            y: 2
+        )
+        .onTapGesture {
+            withAnimation(DSAnimation.springSnappy) {
+                isFocused = true
             }
         }
     }
