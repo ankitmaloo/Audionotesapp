@@ -9,19 +9,19 @@ struct StatusBarView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             statusHeader
-                .staggeredFadeIn(delay: 0)
+                .staggeredFadeIn(index: 0, delay: 0)
 
             decorativeDivider
-                .staggeredFadeIn(delay: 0.1)
+                .staggeredFadeIn(index: 1, delay: 0.1)
 
             activityDetails
-                .staggeredFadeIn(delay: 0.2)
+                .staggeredFadeIn(index: 2, delay: 0.2)
 
             decorativeDivider
-                .staggeredFadeIn(delay: 0.3)
+                .staggeredFadeIn(index: 3, delay: 0.3)
 
             actionButtons
-                .staggeredFadeIn(delay: 0.4)
+                .staggeredFadeIn(index: 4, delay: 0.4)
         }
         .padding(DesignSystem.Spacing.lg)
         .frame(minWidth: 280)

@@ -127,7 +127,147 @@ extension Color {
     }
 }
 
+// MARK: - Design System Structure (for compatibility)
+
+enum DesignSystem {
+    
+    // MARK: - Colors Namespace
+    enum Colors {
+        // Text colors
+        static let primaryText = Color.dsTextPrimary
+        static let secondaryText = Color.dsTextSecondary
+        static let tertiaryText = Color.dsTextTertiary
+        
+        // Accent colors
+        static let primaryAccent = Color.dsAccentPrimary
+        static let secondaryAccent = Color.dsAccentDeep
+        
+        // Background colors
+        static let atmosphericBackground = Color.dsBackgroundPrimary
+        static let sidebarGradient = Color.dsGradientAtmosphere
+        
+        // Card gradients
+        static let cardGradient1 = Color.dsBackgroundSecondary
+        static let cardGradient2 = Color.dsBackgroundTertiary
+        static let cardGradient3 = Color.dsBackgroundSecondary.opacity(0.8)
+        static let cardGradient4 = Color.dsBackgroundTertiary.opacity(0.8)
+        
+        // Folder colors mapping (updated structure with active/idle)
+        static let folderColors: [String: (active: Color, idle: Color)] = [
+            "General": (Color.dsAccentPrimary, Color.dsAccentDeep),
+            "Meetings": (Color(hex: "3b82f6"), Color(hex: "2563eb")),
+            "Ideas": (Color(hex: "8b5cf6"), Color(hex: "7c3aed")),
+            "Lectures": (Color(hex: "10b981"), Color(hex: "059669")),
+            "Personal": (Color.dsAccentPrimary, Color.dsAccentDeep)
+        ]
+        
+        // Additional warm colors (from ViewModifiers.swift)
+        static let warmAmber = Color(red: 0.98, green: 0.76, blue: 0.52)
+        static let warmOrange = Color(red: 0.95, green: 0.61, blue: 0.38)
+        static let deepPurple = Color(red: 0.38, green: 0.29, blue: 0.52)
+        static let softBlue = Color(red: 0.45, green: 0.62, blue: 0.85)
+        static let warmBackground = Color(red: 0.15, green: 0.13, blue: 0.17)
+        static let warmBackgroundLight = Color(red: 0.20, green: 0.18, blue: 0.22)
+    }
+    
+    // MARK: - Typography Namespace
+    enum Typography {
+        static func caption(weight: Font.Weight = .regular) -> Font {
+            DSFont.caption(weight)
+        }
+        
+        static func bodySmall(weight: Font.Weight = .regular) -> Font {
+            .system(size: 13, weight: weight)
+        }
+        
+        static func bodyMedium(weight: Font.Weight = .regular) -> Font {
+            DSFont.body(weight)
+        }
+        
+        static func bodyLarge(weight: Font.Weight = .regular) -> Font {
+            DSFont.callout(weight)
+        }
+        
+        static func titleSmall(weight: Font.Weight = .semibold) -> Font {
+            DSFont.subheadline(weight)
+        }
+        
+        static func titleMedium(weight: Font.Weight = .semibold) -> Font {
+            DSFont.headline(weight)
+        }
+        
+        static func titleLarge(weight: Font.Weight = .bold) -> Font {
+            DSFont.title3(weight)
+        }
+        
+        static func mono(size: CGFloat, weight: Font.Weight = .regular) -> Font {
+            DSFont.mono(size, weight)
+        }
+    }
+    
+    // MARK: - Shadows Namespace
+    enum Shadows {
+        static let subtle = DSShadow.subtle
+        static let medium = DSShadow.medium
+        static let prominent = DSShadow.prominent
+        static let dramatic = DSShadow.dramatic
+    }
+    
+    // MARK: - Animations Namespace
+    enum Animations {
+        static let standardDuration: Double = 0.4
+        static let quickDuration: Double = 0.2
+        static let slowDuration: Double = 0.8
+        
+        static var quick: Animation {
+            DSAnimation.quick
+        }
+        
+        static var smooth: Animation {
+            DSAnimation.springSmooth
+        }
+        
+        static var dramatic: Animation {
+            DSAnimation.springDramatic
+        }
+    }
+    
+    // MARK: - Card Namespace
+    enum Card {
+        static let cornerRadius: CGFloat = DSSpacing.radiusMedium
+        static let padding: CGFloat = DSSpacing.md
+        static let minHeight: CGFloat = 180
+        static let maxHeight: CGFloat = 320
+    }
+    
+    // MARK: - Corner Radius Namespace
+    enum CornerRadius {
+        static let sm = DSSpacing.radiusSmall
+        static let md = DSSpacing.radiusMedium
+        static let lg = DSSpacing.radiusLarge
+        static let xl = DSSpacing.radiusXL
+    }
+    
+    // MARK: - Legacy Spacing/Radius (for compatibility)
+    enum Spacing {
+        static let xs = DSSpacing.xs
+        static let sm = DSSpacing.sm
+        static let md = DSSpacing.md
+        static let lg = DSSpacing.lg
+        static let xl = DSSpacing.xl
+        static let xxl = DSSpacing.xxl
+    }
+    
+    enum Radius {
+        static let sm = DSSpacing.radiusSmall
+        static let md = DSSpacing.radiusMedium
+        static let lg = DSSpacing.radiusLarge
+        static let xl = DSSpacing.radiusXL
+    }
+}
+
 // MARK: - Typography System
+
 
 enum DSFont {
 
@@ -575,6 +715,30 @@ extension View {
     /// Apply standard shadow
     func dsShadow(_ level: (color: Color, radius: CGFloat, x: CGFloat, y: CGFloat) = DSShadow.medium) -> some View {
         shadow(color: level.color, radius: level.radius, x: level.x, y: level.y)
+    }
+    
+    /// Apply atmospheric card style (alias for cardStyle)
+    func atmosphericCard(padding: CGFloat = DSSpacing.md) -> some View {
+        cardStyle(padding: padding, shadow: DSShadow.medium)
+    }
+    
+    /// Apply atmospheric card style with gradient and hover effect
+    func atmosphericCard(gradient: Color, isHovered: Bool) -> some View {
+        self
+            .background(gradient)
+            .cornerRadius(DSSpacing.radiusMedium)
+            .shadow(
+                color: DSShadow.medium.color,
+                radius: isHovered ? DSShadow.prominent.radius : DSShadow.medium.radius,
+                x: 0,
+                y: isHovered ? 6 : 4
+            )
+            .scaleEffect(isHovered ? 1.02 : 1.0)
+    }
+    
+    /// Alias for glassmorphism (for compatibility)
+    func glassMorphism(tint: Color = .dsGlassOverlay, blur: CGFloat = 10) -> some View {
+        glassmorphism(tint: tint, blur: blur)
     }
 }
 

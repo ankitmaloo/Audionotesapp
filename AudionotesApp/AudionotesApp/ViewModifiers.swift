@@ -2,72 +2,10 @@ import SwiftUI
 import AppKit
 
 // MARK: - Design System Constants
-enum DesignSystem {
-    // Colors
-    enum Colors {
-        static let warmAmber = Color(red: 0.98, green: 0.76, blue: 0.52)
-        static let warmOrange = Color(red: 0.95, green: 0.61, blue: 0.38)
-        static let deepPurple = Color(red: 0.38, green: 0.29, blue: 0.52)
-        static let softBlue = Color(red: 0.45, green: 0.62, blue: 0.85)
-        static let warmBackground = Color(red: 0.15, green: 0.13, blue: 0.17)
-        static let warmBackgroundLight = Color(red: 0.20, green: 0.18, blue: 0.22)
-    }
-
-    // Spacing
-    enum Spacing {
-        static let xs: CGFloat = 4
-        static let sm: CGFloat = 8
-        static let md: CGFloat = 12
-        static let lg: CGFloat = 16
-        static let xl: CGFloat = 24
-        static let xxl: CGFloat = 32
-    }
-
-    // Radius
-    enum Radius {
-        static let sm: CGFloat = 6
-        static let md: CGFloat = 10
-        static let lg: CGFloat = 14
-        static let xl: CGFloat = 20
-    }
-
-    // Shadows
-    enum Shadow {
-        static let subtle = (color: Color.black.opacity(0.15), radius: CGFloat(8), x: CGFloat(0), y: CGFloat(2))
-        static let medium = (color: Color.black.opacity(0.25), radius: CGFloat(12), x: CGFloat(0), y: CGFloat(4))
-        static let dramatic = (color: Color.black.opacity(0.35), radius: CGFloat(20), x: CGFloat(0), y: CGFloat(8))
-    }
-}
+// Note: DesignSystem enum is defined in DesignSystem.swift
 
 // MARK: - Grain Texture Modifier
-struct GrainTextureModifier: ViewModifier {
-    @State private var grainOffset: CGFloat = 0
-
-    func body(content: Content) -> some View {
-        content
-            .overlay(
-                GeometryReader { geometry in
-                    Canvas { context, size in
-                        let grainDensity = 0.015
-                        let grainCount = Int(size.width * size.height * grainDensity)
-
-                        for _ in 0..<grainCount {
-                            let x = CGFloat.random(in: 0...size.width)
-                            let y = CGFloat.random(in: 0...size.height)
-                            let opacity = Double.random(in: 0.05...0.15)
-
-                            context.fill(
-                                Path(ellipseIn: CGRect(x: x, y: y, width: 1, height: 1)),
-                                with: .color(.white.opacity(opacity))
-                            )
-                        }
-                    }
-                }
-                .allowsHitTesting(false)
-                .blendMode(.overlay)
-            )
-    }
-}
+// Note: GrainTextureModifier is defined in DesignSystem.swift
 
 // MARK: - Atmospheric Glow Modifier
 struct AtmosphericGlowModifier: ViewModifier {
@@ -146,23 +84,7 @@ struct VisualEffectBlur: NSViewRepresentable {
 }
 
 // MARK: - Staggered Fade In Modifier
-struct StaggeredFadeInModifier: ViewModifier {
-    let delay: Double
-    @State private var opacity: Double = 0
-    @State private var offset: CGFloat = 10
-
-    func body(content: Content) -> some View {
-        content
-            .opacity(opacity)
-            .offset(y: offset)
-            .onAppear {
-                withAnimation(.easeOut(duration: 0.6).delay(delay)) {
-                    opacity = 1
-                    offset = 0
-                }
-            }
-    }
-}
+// Note: StaggeredFadeInModifier is defined in DesignSystem.swift
 
 // MARK: - Hover Lift Modifier
 struct HoverLiftModifier: ViewModifier {
@@ -241,11 +163,8 @@ struct ElegantBorderModifier: ViewModifier {
 
 // MARK: - View Extension
 extension View {
-    /// Applies subtle noise overlay for texture
-    func grainTexture() -> some View {
-        modifier(GrainTextureModifier())
-    }
-
+    // Note: grainTexture(opacity:) and staggeredFadeIn(index:delay:) are defined in DesignSystem.swift
+    
     /// Applies soft outer glow effect
     func atmosphericGlow(color: Color = .white, intensity: CGFloat = 1.0) -> some View {
         modifier(AtmosphericGlowModifier(color: color, intensity: intensity))
@@ -254,11 +173,6 @@ extension View {
     /// Applies frosted glass effect
     func glassmorphic(tintColor: Color = .white, blurRadius: CGFloat = 10) -> some View {
         modifier(GlassmorphicModifier(tintColor: tintColor, blurRadius: blurRadius))
-    }
-
-    /// Applies delayed fade-in animation
-    func staggeredFadeIn(delay: Double = 0) -> some View {
-        modifier(StaggeredFadeInModifier(delay: delay))
     }
 
     /// Applies lift effect on hover with shadow

@@ -27,6 +27,8 @@ struct AtmosphericBackground: View {
         ZStack {
             // Base gradient mesh
             MeshGradient(
+                width: 3,
+                height: 3,
                 points: animateGradient ?
                     [[0.0, 0.0], [0.5, 0.0], [1.0, 0.0],
                      [0.0, 0.5], [0.5, 0.5], [1.0, 0.5],
@@ -227,7 +229,7 @@ struct ContentView: View {
                                         )
 
                                     RoundedRectangle(cornerRadius: 12)
-                                        .stroke(.warmIvory.opacity(0.3), lineWidth: 1)
+                                        .stroke(Color.warmIvory.opacity(0.3), lineWidth: 1)
                                 }
                             )
                             .glowEffect(color: .burntAmber.opacity(0.5), radius: 25)
@@ -341,10 +343,10 @@ struct ContentView: View {
                             .background(
                                 ZStack {
                                     RoundedRectangle(cornerRadius: 10)
-                                        .fill(.warmIvory)
+                                        .fill(Color.warmIvory)
 
                                     RoundedRectangle(cornerRadius: 10)
-                                        .stroke(.softGold.opacity(0.4), lineWidth: 1)
+                                        .stroke(Color.softGold.opacity(0.4), lineWidth: 1)
                                 }
                             )
                             .shadow(color: .warmIvory.opacity(0.3), radius: 20)

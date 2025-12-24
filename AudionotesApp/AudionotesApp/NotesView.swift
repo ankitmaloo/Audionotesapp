@@ -429,7 +429,7 @@ struct AsymmetricNoteCard: View {
     let onHover: (Bool) -> Void
 
     // Determine card gradient based on index
-    private var cardGradient: [Color] {
+    private var cardGradient: Color {
         let gradients = [
             DesignSystem.Colors.cardGradient1,
             DesignSystem.Colors.cardGradient2,
