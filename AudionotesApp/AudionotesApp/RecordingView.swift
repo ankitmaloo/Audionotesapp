@@ -8,6 +8,7 @@ struct RecordingView: View {
     @State private var noteTitle = ""
     @State private var selectedFolder = "General"
     @State private var recordingStartTime: Date?
+    @State private var recordingTimestamp: Int?
     @State private var showingAlert = false
     @State private var alertMessage = ""
     @State private var showSettingsPopover = false
@@ -566,7 +567,8 @@ struct RecordingView: View {
             return
         }
 
-        let timestamp = Int(Date().timeIntervalSince1970)
+        let startTime = Date()
+        let timestamp = Int(startTime.timeIntervalSince1970)
         let sanitizedTitle = noteTitle.trimmingCharacters(in: .whitespacesAndNewlines)
             .replacingOccurrences(of: " ", with: "-")
             .lowercased()
@@ -577,21 +579,25 @@ struct RecordingView: View {
         let systemURL = notesManager.getFileURL(for: systemFileName, in: selectedFolder)
         let micURL = notesManager.getFileURL(for: micFileName, in: selectedFolder)
 
-        do {
-            try audioCapService.startRecording(systemAudioURL: systemURL, microphoneURL: micURL)
-            recordingStartTime = Date()
-        } catch {
-            showAlert("Failed to start recording: \(error.localizedDescription)")
+        Task {
+            do {
+                try await audioCapService.startRecording(systemAudioURL: systemURL, microphoneURL: micURL)
+                recordingStartTime = startTime
+                recordingTimestamp = timestamp
+            } catch {
+                showAlert("Failed to start recording: \(error.localizedDescription)")
+            }
         }
     }
 
     private func stopRecording() {
-        audioCapService.stopRecording()
+        Task {
+            await audioCapService.stopRecording()
+        }
 
-        guard let startTime = recordingStartTime else { return }
+        guard let startTime = recordingStartTime, let timestamp = recordingTimestamp else { return }
 
         let duration = Date().timeIntervalSince(startTime)
-        let timestamp = Int(startTime.timeIntervalSince1970)
         let sanitizedTitle = noteTitle.trimmingCharacters(in: .whitespacesAndNewlines)
             .replacingOccurrences(of: " ", with: "-")
             .lowercased()
@@ -616,6 +622,7 @@ struct RecordingView: View {
 
         noteTitle = ""
         recordingStartTime = nil
+        recordingTimestamp = nil
 
         // Kick off transcription for available audio sources (with timestamps)
         let config = OpenAIConfig(

@@ -3,6 +3,24 @@ import AudioToolbox
 import OSLog
 import AVFoundation
 
+// Debug logging to file
+private func debugLog(_ message: String) {
+    let logFile = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0].appendingPathComponent("processtap_debug.log")
+    let timestamp = ISO8601DateFormatter().string(from: Date())
+    let logMessage = "[\(timestamp)] \(message)\n"
+    if let data = logMessage.data(using: .utf8) {
+        if FileManager.default.fileExists(atPath: logFile.path) {
+            if let handle = try? FileHandle(forWritingTo: logFile) {
+                handle.seekToEndOfFile()
+                handle.write(data)
+                handle.closeFile()
+            }
+        } else {
+            try? data.write(to: logFile)
+        }
+    }
+}
+
 final class ProcessTap {
 
     typealias InvalidationHandler = (ProcessTap) -> Void
@@ -88,6 +106,9 @@ final class ProcessTap {
     private func prepare(for objectID: AudioObjectID) throws {
         errorMessage = nil
 
+        logger.info("ProcessTap: Preparing tap for process '\(self.process.name)' (objectID: \(objectID), pid: \(self.process.id))")
+        debugLog("Preparing tap for '\(self.process.name)' (pid: \(self.process.id))")
+
         let tapDescription = CATapDescription(stereoMixdownOfProcesses: [objectID])
         tapDescription.uuid = UUID()
         tapDescription.muteBehavior = muteWhenRunning ? .mutedWhenTapped : .unmuted
@@ -96,16 +117,19 @@ final class ProcessTap {
 
         guard err == noErr else {
             errorMessage = "Process tap creation failed with error \(err)"
+            logger.error("ProcessTap: Failed to create tap - error \(err)")
             return
         }
 
-        logger.debug("Created process tap #\(tapID, privacy: .public)")
+        logger.info("ProcessTap: Created tap #\(tapID) for '\(self.process.name)'")
 
         self.processTapID = tapID
 
         let systemOutputID = try AudioDeviceID.readDefaultSystemOutputDevice()
-
         let outputUID = try systemOutputID.readDeviceUID()
+
+        logger.info("ProcessTap: System output device ID=\(systemOutputID), UID=\(outputUID)")
+        debugLog("Output device: \(outputUID)")
 
         let aggregateUID = UUID().uuidString
 
@@ -223,11 +247,35 @@ final class ProcessTapRecorder {
 
         self.currentFile = file
 
+        var bufferCount = 0
+        var totalSamplesWritten: UInt32 = 0
+        var maxAmplitudeSeen: Float = 0
+
         try tap.run(on: queue) { [weak self] inNow, inInputData, inInputTime, outOutputData, inOutputTime in
             guard let self, let currentFile = self.currentFile else { return }
             do {
                 guard let buffer = AVAudioPCMBuffer(pcmFormat: format, bufferListNoCopy: inInputData, deallocator: nil) else {
                     throw "Failed to create PCM buffer"
+                }
+
+                // Log buffer info periodically
+                bufferCount += 1
+                totalSamplesWritten += buffer.frameLength
+
+                // Check for actual audio content
+                if let channelData = buffer.floatChannelData {
+                    for i in 0..<Int(buffer.frameLength) {
+                        let sample = abs(channelData[0][i])
+                        if sample > maxAmplitudeSeen {
+                            maxAmplitudeSeen = sample
+                        }
+                    }
+                }
+
+                // Log every 50 buffers
+                if bufferCount % 50 == 0 {
+                    logger.info("ProcessTap: \(bufferCount) buffers, \(totalSamplesWritten) samples, maxAmp=\(maxAmplitudeSeen)")
+                    debugLog("Buffers: \(bufferCount), samples: \(totalSamplesWritten), maxAmp: \(maxAmplitudeSeen)")
                 }
 
                 try currentFile.write(from: buffer)
@@ -236,6 +284,8 @@ final class ProcessTapRecorder {
             }
         } invalidationHandler: { [weak self] tap in
             guard let self else { return }
+            logger.info("ProcessTap FINAL: \(bufferCount) buffers, \(totalSamplesWritten) samples, maxAmp=\(maxAmplitudeSeen)")
+            debugLog("STOPPED: \(bufferCount) buffers, \(totalSamplesWritten) samples, maxAmp: \(maxAmplitudeSeen)")
             handleInvalidation()
         }
 

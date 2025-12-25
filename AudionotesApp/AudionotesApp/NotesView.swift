@@ -8,6 +8,7 @@ struct NotesView: View {
     @State private var selectedFolderName: String? = nil
     @State private var hoveredNoteId: UUID? = nil
     @State private var hoveredFolderName: String? = nil
+    @State private var selectedNote: Note? = nil
 
     private var filteredNotes: [Note] {
         if searchText.isEmpty {
@@ -48,6 +49,9 @@ struct NotesView: View {
         }
         .sheet(isPresented: $showingNewFolderDialog) {
             newFolderDialog
+        }
+        .sheet(item: $selectedNote) { note in
+            NoteDetailView(note: note)
         }
     }
 
@@ -260,6 +264,9 @@ struct NotesView: View {
                             withAnimation(DesignSystem.Animations.quick) {
                                 hoveredNoteId = isHovered ? note.id : nil
                             }
+                        },
+                        onTap: {
+                            selectedNote = note
                         }
                     )
                     .staggeredFadeIn(index: index)
@@ -427,6 +434,7 @@ struct AsymmetricNoteCard: View {
     let index: Int
     let isHovered: Bool
     let onHover: (Bool) -> Void
+    let onTap: () -> Void
 
     // Determine card gradient based on index
     private var cardGradient: Color {
@@ -557,6 +565,8 @@ struct AsymmetricNoteCard: View {
         .atmosphericCard(gradient: cardGradient, isHovered: isHovered)
         .offset(x: asymmetricOffset)
         .onHover(perform: onHover)
+        .onTapGesture(perform: onTap)
+        .contentShape(Rectangle())
         .animation(DesignSystem.Animations.dramatic, value: isHovered)
     }
 
