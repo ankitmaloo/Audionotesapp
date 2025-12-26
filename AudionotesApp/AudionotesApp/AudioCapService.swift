@@ -2,6 +2,8 @@ import Foundation
 import AVFoundation
 import AudioToolbox
 import OSLog
+import ScreenCaptureKit
+import AppKit
 
 /// A service that provides dual audio recording capabilities (system audio + microphone)
 /// Can be used by any interface to record audio from system processes and microphone simultaneously
@@ -21,6 +23,9 @@ final class AudioCapService: ObservableObject {
     /// Error message if something goes wrong
     @Published private(set) var errorMessage: String?
 
+    /// Screen capture permission status
+    @Published private(set) var screenCapturePermissionGranted = false
+
     // MARK: - Private Properties
 
     private let processController = AudioProcessController()
@@ -31,6 +36,44 @@ final class AudioCapService: ObservableObject {
 
     init() {
         processController.activate()
+        Task {
+            await checkScreenCapturePermission()
+        }
+    }
+
+    // MARK: - Permission Methods
+
+    /// Check if screen capture permission is granted
+    func checkScreenCapturePermission() async {
+        do {
+            // Attempting to get shareable content will trigger permission request or fail if denied
+            _ = try await SCShareableContent.excludingDesktopWindows(false, onScreenWindowsOnly: false)
+            screenCapturePermissionGranted = true
+            logger.info("Screen capture permission granted")
+        } catch {
+            screenCapturePermissionGranted = false
+            logger.warning("Screen capture permission not granted: \(error.localizedDescription)")
+        }
+    }
+
+    /// Request screen capture permission by triggering the system prompt
+    func requestScreenCapturePermission() async {
+        // Trigger permission dialog by attempting to access shareable content
+        do {
+            _ = try await SCShareableContent.excludingDesktopWindows(false, onScreenWindowsOnly: false)
+            screenCapturePermissionGranted = true
+        } catch {
+            screenCapturePermissionGranted = false
+            // Open System Settings to Screen Recording
+            openScreenRecordingSettings()
+        }
+    }
+
+    /// Open System Settings to Screen Recording
+    func openScreenRecordingSettings() {
+        if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenCapture") {
+            NSWorkspace.shared.open(url)
+        }
     }
     
     // MARK: - Public API

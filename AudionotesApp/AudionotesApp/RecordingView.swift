@@ -40,21 +40,21 @@ struct RecordingView: View {
                     VStack(alignment: .leading, spacing: 0) {
                         // Asymmetric header with diagonal flow
                         asymmetricHeader
-                            .padding(.top, 60)
+                            .padding(.top, 40)
                             .padding(.leading, 40)
                             .opacity(hasAppeared ? 1 : 0)
                             .offset(y: hasAppeared ? 0 : -30)
                             .animation(.spring(response: 0.8, dampingFraction: 0.7).delay(0.1), value: hasAppeared)
 
                         Spacer()
-                            .frame(height: 60)
+                            .frame(height: 40)
 
                         // Main content area with offset for asymmetry
                         HStack(spacing: 40) {
                             Spacer()
                                 .frame(width: 20)
 
-                            VStack(alignment: .leading, spacing: 32) {
+                            VStack(alignment: .leading, spacing: 28) {
                                 if audioCapService.isRecording {
                                     recordingActiveView
                                 } else {
@@ -62,7 +62,6 @@ struct RecordingView: View {
                                 }
 
                                 Spacer()
-                                    .frame(minHeight: 40)
 
                                 // Dramatic recording button
                                 recordingControlSection
@@ -71,6 +70,10 @@ struct RecordingView: View {
 
                             Spacer()
                         }
+
+                        // Bottom safe area
+                        Spacer()
+                            .frame(height: 50)
                     }
                 }
             }
@@ -303,18 +306,17 @@ struct RecordingView: View {
                     }
                 }
                 .pickerStyle(.menu)
-                .font(.system(size: 16, weight: .medium, design: .rounded))
-                .foregroundColor(.white)
-                .padding(.vertical, 14)
-                .padding(.horizontal, 20)
+                .labelsHidden()
+                .tint(.white)
+                .padding(.vertical, 12)
+                .padding(.horizontal, 16)
                 .background(
-                    RoundedRectangle(cornerRadius: 16, style: .continuous)
-                        .fill(Color.white.opacity(0.05))
+                    RoundedRectangle(cornerRadius: 12, style: .continuous)
+                        .fill(Color.white.opacity(0.1))
                         .overlay(
-                            RoundedRectangle(cornerRadius: 16, style: .continuous)
-                                .strokeBorder(Color.white.opacity(0.15), lineWidth: 1)
+                            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                                .strokeBorder(Color.white.opacity(0.2), lineWidth: 1)
                         )
-                        .shadow(color: .black.opacity(0.2), radius: 8, x: 0, y: 3)
                 )
             }
             .opacity(hasAppeared ? 1 : 0)
@@ -335,26 +337,33 @@ struct RecordingView: View {
                 .offset(x: hasAppeared ? 0 : -30)
                 .animation(.spring(response: 0.7, dampingFraction: 0.7).delay(0.5), value: hasAppeared)
 
-                // System audio status
-                if let activeProcess = audioCapService.getCurrentActiveProcess() {
+                // Screen capture permission status
+                if audioCapService.screenCapturePermissionGranted {
                     StatusCard(
                         icon: "speaker.wave.2.fill",
                         iconColor: .green,
-                        title: "System Audio Connected",
-                        subtitle: "Capturing from: \(activeProcess.name)",
+                        title: "System Audio Ready",
+                        subtitle: "Screen recording permission granted",
                         accentColor: .green
                     )
                     .opacity(hasAppeared ? 1 : 0)
                     .offset(x: hasAppeared ? 0 : -30)
                     .animation(.spring(response: 0.7, dampingFraction: 0.7).delay(0.6), value: hasAppeared)
                 } else {
-                    StatusCard(
-                        icon: "speaker.slash.fill",
-                        iconColor: .orange,
-                        title: "System Audio Unavailable",
-                        subtitle: "Microphone recording will proceed normally",
-                        accentColor: .orange
-                    )
+                    Button(action: {
+                        Task {
+                            await audioCapService.requestScreenCapturePermission()
+                        }
+                    }) {
+                        StatusCard(
+                            icon: "exclamationmark.triangle.fill",
+                            iconColor: .orange,
+                            title: "Screen Recording Required",
+                            subtitle: "Tap to grant permission for system audio",
+                            accentColor: .orange
+                        )
+                    }
+                    .buttonStyle(.plain)
                     .opacity(hasAppeared ? 1 : 0)
                     .offset(x: hasAppeared ? 0 : -30)
                     .animation(.spring(response: 0.7, dampingFraction: 0.7).delay(0.6), value: hasAppeared)
@@ -564,6 +573,14 @@ struct RecordingView: View {
     private func startRecording() {
         guard !noteTitle.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
             showAlert("Please enter a note title")
+            return
+        }
+
+        // Check screen capture permission first
+        guard audioCapService.screenCapturePermissionGranted else {
+            Task {
+                await audioCapService.requestScreenCapturePermission()
+            }
             return
         }
 

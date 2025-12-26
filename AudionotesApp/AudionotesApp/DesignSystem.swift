@@ -39,11 +39,11 @@ extension Color {
     /// Soft cream - primary text
     static let dsTextPrimary = Color(hex: "fef3c7")
 
-    /// Warm white - secondary text
-    static let dsTextSecondary = Color(hex: "fafaf9")
+    /// Warm white - secondary text (improved contrast)
+    static let dsTextSecondary = Color(hex: "e8e4df")
 
-    /// Muted gray - tertiary text
-    static let dsTextTertiary = Color(hex: "a8a29e")
+    /// Muted gray - tertiary text (improved contrast)
+    static let dsTextTertiary = Color(hex: "c4c0bb")
 
     // MARK: - Semantic Colors
 

@@ -87,7 +87,12 @@ final class CallDetectionService: ObservableObject {
                     self.hasPromptedForCurrentCall = true
                     self.stopMonitoring()
                 } else {
-                    self.startMonitoringIfPossible()
+                    // Delay monitoring restart after stopping to avoid false positives
+                    self.promptCooldownAnchor = Date()
+                    Task { @MainActor in
+                        try? await Task.sleep(nanoseconds: 3_000_000_000) // 3 second delay
+                        self.startMonitoringIfPossible()
+                    }
                 }
             }
             .store(in: &cancellables)

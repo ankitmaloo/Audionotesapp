@@ -104,28 +104,12 @@ struct NotesView: View {
 
             VStack(spacing: DesignSystem.Spacing.lg) {
                 // Header
-                VStack(spacing: DesignSystem.Spacing.xs) {
-                    Text("Collections")
-                        .font(DesignSystem.Typography.titleMedium(weight: .bold))
-                        .foregroundColor(DesignSystem.Colors.primaryText)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding(.horizontal, DesignSystem.Spacing.md)
-                        .padding(.top, DesignSystem.Spacing.lg)
-
-                    Rectangle()
-                        .fill(
-                            LinearGradient(
-                                colors: [
-                                    DesignSystem.Colors.primaryAccent.opacity(0.3),
-                                    DesignSystem.Colors.secondaryAccent.opacity(0.3)
-                                ],
-                                startPoint: .leading,
-                                endPoint: .trailing
-                            )
-                        )
-                        .frame(height: 2)
-                        .padding(.horizontal, DesignSystem.Spacing.md)
-                }
+                Text("Collections")
+                    .font(DesignSystem.Typography.titleMedium(weight: .bold))
+                    .foregroundColor(DesignSystem.Colors.primaryText)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.horizontal, DesignSystem.Spacing.md)
+                    .padding(.top, DesignSystem.Spacing.xl)
 
                 // Folders list
                 ScrollView {
@@ -164,17 +148,17 @@ struct NotesView: View {
                     .frame(maxWidth: .infinity)
                     .padding(DesignSystem.Spacing.md)
                     .background(
-                        RoundedRectangle(cornerRadius: DesignSystem.CornerRadius.md)
-                            .fill(Color.white.opacity(0.6))
+                        RoundedRectangle(cornerRadius: DesignSystem.CornerRadius.lg)
+                            .fill(DesignSystem.Colors.primaryAccent.opacity(0.12))
                     )
                     .overlay(
-                        RoundedRectangle(cornerRadius: DesignSystem.CornerRadius.md)
-                            .strokeBorder(DesignSystem.Colors.primaryAccent.opacity(0.3), lineWidth: 1)
+                        RoundedRectangle(cornerRadius: DesignSystem.CornerRadius.lg)
+                            .strokeBorder(DesignSystem.Colors.primaryAccent.opacity(0.35), lineWidth: 1)
                     )
                 }
                 .buttonStyle(.plain)
                 .padding(.horizontal, DesignSystem.Spacing.md)
-                .padding(.bottom, DesignSystem.Spacing.md)
+                .padding(.bottom, DesignSystem.Spacing.xl)
             }
         }
         .frame(minWidth: 240, idealWidth: 280)
@@ -225,21 +209,45 @@ struct NotesView: View {
                         )
                         .frame(width: 140, height: 140)
 
-                    Image(systemName: "note.text")
+                    Image(systemName: searchText.isEmpty ? "note.text" : "magnifyingglass")
                         .font(.system(size: 56, weight: .light))
                         .foregroundColor(DesignSystem.Colors.primaryAccent)
                 }
 
                 VStack(spacing: DesignSystem.Spacing.md) {
-                    Text("No Notes Yet")
+                    Text(searchText.isEmpty ? "No Notes Yet" : "No Results")
                         .font(DesignSystem.Typography.titleLarge(weight: .bold))
                         .foregroundColor(DesignSystem.Colors.primaryText)
 
-                    Text(searchText.isEmpty ? "Your collection awaits\nStart recording to create your first note" : "No notes match your search")
+                    Text(searchText.isEmpty ? "Your collection awaits\nStart recording to create your first note" : "No notes match \"\(searchText)\"")
                         .font(DesignSystem.Typography.bodyLarge())
                         .foregroundColor(DesignSystem.Colors.secondaryText)
                         .multilineTextAlignment(.center)
                         .lineSpacing(4)
+                }
+
+                // Clear search button when searching
+                if !searchText.isEmpty {
+                    Button(action: {
+                        withAnimation(DesignSystem.Animations.quick) {
+                            searchText = ""
+                        }
+                    }) {
+                        HStack(spacing: 8) {
+                            Image(systemName: "xmark.circle.fill")
+                            Text("Clear Search")
+                        }
+                        .font(.system(size: 15, weight: .medium))
+                        .foregroundColor(.white)
+                        .padding(.horizontal, 20)
+                        .padding(.vertical, 12)
+                        .background(
+                            Capsule()
+                                .fill(DesignSystem.Colors.primaryAccent)
+                        )
+                    }
+                    .buttonStyle(.plain)
+                    .padding(.top, DesignSystem.Spacing.md)
                 }
             }
 
@@ -289,50 +297,50 @@ struct NotesView: View {
 
     @ViewBuilder
     private var newFolderDialog: some View {
-        NavigationView {
-            ZStack {
-                DesignSystem.Colors.atmosphericBackground
-                    .ignoresSafeArea()
+        VStack(spacing: 0) {
+            // Header
+            Text("Create New Folder")
+                .font(.system(size: 18, weight: .semibold))
+                .foregroundColor(.primary)
+                .padding(.top, 24)
+                .padding(.bottom, 20)
 
-                VStack(spacing: DesignSystem.Spacing.lg) {
-                    VStack(spacing: DesignSystem.Spacing.md) {
-                        Text("Create New Folder")
-                            .font(DesignSystem.Typography.titleMedium(weight: .bold))
-                            .foregroundColor(DesignSystem.Colors.primaryText)
+            // Text field
+            VStack(alignment: .leading, spacing: 8) {
+                Text("Folder Name")
+                    .font(.system(size: 12, weight: .medium))
+                    .foregroundColor(.secondary)
+                    .textCase(.uppercase)
 
-                        TextField("Folder Name", text: $newFolderName)
-                            .textFieldStyle(.plain)
-                            .font(DesignSystem.Typography.bodyLarge())
-                            .padding(DesignSystem.Spacing.md)
-                            .background(Color.white.opacity(0.8))
-                            .clipShape(RoundedRectangle(cornerRadius: DesignSystem.CornerRadius.md))
-                            .overlay(
-                                RoundedRectangle(cornerRadius: DesignSystem.CornerRadius.md)
-                                    .strokeBorder(DesignSystem.Colors.primaryAccent.opacity(0.2), lineWidth: 1)
-                            )
-                    }
-                    .padding(DesignSystem.Spacing.xl)
-
-                    HStack(spacing: DesignSystem.Spacing.md) {
-                        Button("Cancel") {
-                            showingNewFolderDialog = false
-                            newFolderName = ""
-                        }
-                        .buttonStyle(.bordered)
-
-                        Button("Create") {
-                            notesManager.createFolder(named: newFolderName.trimmingCharacters(in: .whitespacesAndNewlines))
-                            showingNewFolderDialog = false
-                            newFolderName = ""
-                        }
-                        .buttonStyle(.borderedProminent)
-                        .disabled(newFolderName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-                    }
-                    .padding(.horizontal, DesignSystem.Spacing.xl)
-                }
+                TextField("Enter folder name...", text: $newFolderName)
+                    .textFieldStyle(.roundedBorder)
+                    .font(.system(size: 16))
             }
+            .padding(.horizontal, 24)
+
+            Spacer()
+
+            // Buttons
+            HStack(spacing: 12) {
+                Button("Cancel") {
+                    showingNewFolderDialog = false
+                    newFolderName = ""
+                }
+                .keyboardShortcut(.cancelAction)
+
+                Button("Create") {
+                    notesManager.createFolder(named: newFolderName.trimmingCharacters(in: .whitespacesAndNewlines))
+                    showingNewFolderDialog = false
+                    newFolderName = ""
+                }
+                .keyboardShortcut(.defaultAction)
+                .buttonStyle(.borderedProminent)
+                .disabled(newFolderName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+            }
+            .padding(.horizontal, 24)
+            .padding(.bottom, 20)
         }
-        .frame(width: 450, height: 220)
+        .frame(width: 380, height: 180)
     }
 
     private func deleteNotes(at offsets: IndexSet) {
@@ -405,18 +413,18 @@ struct AnimatedFolderRow: View {
             }
             .padding(DesignSystem.Spacing.md)
             .background(
-                RoundedRectangle(cornerRadius: DesignSystem.CornerRadius.md)
+                RoundedRectangle(cornerRadius: DesignSystem.CornerRadius.lg)
                     .fill(
                         isSelected
-                            ? Color.white.opacity(0.8)
-                            : (isHovered ? Color.white.opacity(0.4) : Color.clear)
+                            ? folderColor.opacity(0.15)
+                            : (isHovered ? Color.white.opacity(0.08) : Color.clear)
                     )
             )
             .overlay(
-                RoundedRectangle(cornerRadius: DesignSystem.CornerRadius.md)
+                RoundedRectangle(cornerRadius: DesignSystem.CornerRadius.lg)
                     .strokeBorder(
-                        isSelected ? folderColor.opacity(0.3) : Color.clear,
-                        lineWidth: 1
+                        isSelected ? folderColor.opacity(0.4) : Color.clear,
+                        lineWidth: 1.5
                     )
             )
         }
